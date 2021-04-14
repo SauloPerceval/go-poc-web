@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -33,7 +34,7 @@ func (c *client) read() {
 func (c *client) write() {
 	defer c.socket.Close()
 	for {
-		err := c.socket.WriteMessage(websocket.TextMessage, []byte("Teste"))
+		err := c.socket.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Test channel %d", c.id)))
 		if err != nil {
 			return
 		}

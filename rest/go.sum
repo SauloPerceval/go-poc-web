@@ -1,3 +1,5 @@
+github.com/SauloPerceval/go-poc-web/websocket v0.0.0-20210409224422-ce05148516fd h1:2dD1/ppfr6vSY00U1SWE9m3UQKZ7PDzn6miaef6fqb0=
+github.com/SauloPerceval/go-poc-web/websocket v0.0.0-20210409224422-ce05148516fd/go.mod h1:qq+i3mu1BfSP/Wsi1kN9Dip+Sx+7AqPi9sTxPwQOdEY=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

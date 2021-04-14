@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
+	"net/http"
 
 	"github.com/gorilla/websocket"
 )
@@ -37,7 +40,27 @@ func (whc *WebHookClient) StartReadingSocket() {
 			log.Println("read error:", err)
 			return
 		}
-		log.Printf("recv: %s; url: %s", message, whc.url)
+
+		requestBody, err := json.Marshal(map[string]string{
+			"text": string(message),
+		})
+
+		if err != nil {
+			log.Println("read error:", err)
+			return
+		}
+
+		resp, err := http.Post(whc.url, "application/json", bytes.NewBuffer(requestBody))
+
+		if err != nil {
+			log.Printf("Request to %s failed: %s \n", whc.url, err.Error())
+			return
+		}
+
+		if resp.StatusCode != 200 {
+			log.Printf("Request to %s return status %d\n", whc.url, resp.StatusCode)
+			return
+		}
 	}
 }
 

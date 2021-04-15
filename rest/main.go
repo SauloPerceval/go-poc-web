@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -16,26 +17,39 @@ type Message struct {
 }
 
 type Hub struct {
-	wh_cliets_map map[int]*WebHookClient
+	wh_clients_count int
+	wh_cliets_map    map[int]*WebHookClient
+	add_client       chan *WebHookClient
+	remove_client    chan *WebHookClient
 }
 
-var wh_count int
+func (h *Hub) MonitorClients() {
+	for {
+		select {
+		case new_client := <-h.add_client:
+			h.wh_clients_count++
+			new_client.id = h.wh_clients_count
+			h.wh_cliets_map[h.wh_clients_count] = new_client
+			go new_client.StartReadingSocket(h.remove_client)
+			log.Println("Starting redirecting messages to client ", new_client.id)
+		case exiting_client := <-h.remove_client:
+			delete(h.wh_cliets_map, exiting_client.id)
+			log.Println("Stop redirecting messages to client ", exiting_client.id)
+		}
+	}
+}
 
 func (h *Hub) RegisterWebhook(c *gin.Context) {
 	var webhook WebHook
 
 	if err := c.BindJSON(&webhook); err == nil {
-		wh_count++
-
 		new_client := WebHookClient{
 			url: webhook.Url,
 		}
-		go new_client.StartReadingSocket()
-
-		h.wh_cliets_map[wh_count] = &new_client
+		h.add_client <- &new_client
 
 		c.JSON(http.StatusOK, gin.H{
-			"id": strconv.Itoa(wh_count),
+			"id": strconv.Itoa(new_client.id),
 		})
 	} else {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -60,7 +74,11 @@ func (h *Hub) SendMessage(c *gin.Context) {
 func main() {
 	h := &Hub{
 		wh_cliets_map: make(map[int]*WebHookClient),
+		add_client:    make(chan *WebHookClient),
+		remove_client: make(chan *WebHookClient),
 	}
+	go h.MonitorClients()
+
 	r := gin.Default()
 
 	r.POST("/webhook", h.RegisterWebhook)

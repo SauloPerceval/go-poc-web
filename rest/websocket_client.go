@@ -13,6 +13,7 @@ const ws_addres = "ws://localhost:8080/ws"
 
 type WebHookClient struct {
 	url  string
+	id   int
 	c    *websocket.Conn
 	open bool
 }
@@ -26,12 +27,13 @@ func connectWebsocket() (c *websocket.Conn) {
 	return
 }
 
-func (whc *WebHookClient) StartReadingSocket() {
+func (whc *WebHookClient) StartReadingSocket(exit_channel chan *WebHookClient) {
 	whc.c = connectWebsocket()
 	whc.open = true
 	defer func() {
 		whc.c.Close()
 		whc.open = false
+		exit_channel <- whc
 	}()
 
 	for {

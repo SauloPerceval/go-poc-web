@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -14,9 +15,26 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+const ws_addres = "ws://localhost:2020"
+
+type whatsappClient struct {
+	whatsappWeb *websocket.Conn
+}
+
+func (wpclient *whatsappClient) connectWebsocket() (c *websocket.Conn) {
+	c, _, err := websocket.DefaultDialer.Dial(ws_addres, nil)
+	wpclient.whatsappWeb = c
+	if err != nil {
+		log.Fatal("dial error:", err)
+		c.Close()
+	}
+	return
+}
+
 type client struct {
 	id     int
 	socket *websocket.Conn
+	wpclientConn whatsappClient
 }
 
 func (c *client) read() {
@@ -27,6 +45,11 @@ func (c *client) read() {
 			return
 		}
 		s := string(byte_msg)
+		contain := strings.Contains(s, "backend-connectWhatsApp")
+		if contain {
+			c.wpclientConn.connectWebsocket()
+		}
+
 		log.Printf("client: %d; message: %s", c.id, s)
 	}
 }
@@ -49,10 +72,12 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	wpclient := whatsappClient{}
 	client_count++
 	client := &client{
 		id:     client_count,
 		socket: conn,
+		wpclientConn: wpclient,
 	}
 
 	// Allow collection of memory referenced by the caller by doing all work in

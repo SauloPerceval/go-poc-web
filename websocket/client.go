@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -19,6 +19,7 @@ const ws_addres = "ws://localhost:2020"
 
 type whatsappClient struct {
 	whatsappWeb *websocket.Conn
+	open bool
 }
 
 func (wpclient *whatsappClient) connectWebsocket() (c *websocket.Conn) {
@@ -37,29 +38,49 @@ type client struct {
 	wpclientConn whatsappClient
 }
 
-func (c *client) read() {
-	defer c.socket.Close()
+func (c *client) receive() {
+	defer func (){
+		c.socket.Close()
+		c.wpclientConn.whatsappWeb.Close()
+	}()
 	for {
 		_, byte_msg, err := c.socket.ReadMessage()
 		if err != nil {
 			return
 		}
 		s := string(byte_msg)
+		log.Printf("client: %d; message received: %s", c.id, s)
 		contain := strings.Contains(s, "backend-connectWhatsApp")
 		if contain {
 			c.wpclientConn.connectWebsocket()
+			c.wpclientConn.open = true
 		}
 
-		log.Printf("client: %d; message: %s", c.id, s)
+		err = c.wpclientConn.whatsappWeb.WriteMessage(
+			websocket.TextMessage, []byte(strings.Replace(string(byte_msg), "´", `"`, -1)))
+		if err != nil {
+			return
+		}
+
+		log.Printf("client: %d; Message sent: %s", c.id, string(byte_msg))
 	}
 }
 
-func (c *client) write() {
-	defer c.socket.Close()
+func (c *client) send() {
+	defer func (){
+		c.socket.Close()
+		c.wpclientConn.whatsappWeb.Close()
+	}()
 	for {
-		err := c.socket.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Test channel %d", c.id)))
-		if err != nil {
-			return
+		if c.wpclientConn.open {
+			_, recv_msg, err := c.wpclientConn.whatsappWeb.ReadMessage()
+			if err != nil {
+				return
+			}
+			err = c.socket.WriteMessage(websocket.TextMessage, recv_msg)
+			if err != nil {
+				return
+			}
 		}
 		<-time.After(2 * time.Second)
 	}
@@ -72,16 +93,16 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	wpclient := whatsappClient{}
+	wpClient := whatsappClient{}
 	client_count++
 	client := &client{
 		id:     client_count,
 		socket: conn,
-		wpclientConn: wpclient,
+		wpclientConn: wpClient,
 	}
 
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.
-	go client.read()
-	go client.write()
+	go client.receive()
+	go client.send()
 }

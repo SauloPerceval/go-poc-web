@@ -26,7 +26,7 @@ func receiveMessage(c *gin.Context) {
 
 func main() {
 	var addr string
-	flag.StringVar(&addr, "p", "5000", "http service port")
+	flag.StringVar(&addr, "p", "6000", "http service port")
 	flag.Parse()
 	r := gin.Default()
 

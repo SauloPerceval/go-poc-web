@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -65,6 +66,6 @@ func main() {
 
 	r.POST("/webhook", h.RegisterWebhook)
 	r.POST("/send/:webhook_id", h.SendMessage)
-
+	r.Use((cors.Default()))
 	r.Run(":8000")
 }

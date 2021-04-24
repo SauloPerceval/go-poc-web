@@ -21,13 +21,25 @@ type WebHookClient struct {
 	open bool
 }
 
+type QRCode struct {
+	Content string
+	From string
+	Image string
+	Type string
+	Resource_instance_id string
+}
+
 func create_qrcode_file(file string){
+	var qrcode QRCode
 	fmt.Println(file)
-	message1 := strings.Split(file, `"image":`)
-	message2 := strings.Split(message1[1], ":")
-	message3 := strings.Split(message2[1], "base64,")
-	qrContent := strings.Split(message3[1], `",`)
-	dec, err := base64.StdEncoding.DecodeString(qrContent[0])
+	message1 := strings.SplitN(file, `,`, 2)
+	response_json := []byte(message1[1])
+	err := json.Unmarshal(response_json, &qrcode)
+	if err != nil {
+		fmt.Println(err)
+	}
+	qrimage := strings.Replace(qrcode.Image, "data:image/svg+xml;base64,", "", 1)
+	dec, err := base64.StdEncoding.DecodeString(qrimage)
 	f, err := os.Create("qrcode.svg")
     if err != nil {
         panic(err)
